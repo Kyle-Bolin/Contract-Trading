@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Contract Trading
+
+Track U.S. government contract awards and generate stock trading signals for publicly traded companies that win them.
+
+## What It Does
+
+- Polls [USAspending.gov](https://usaspending.gov) daily for new federal contract awards
+- Maps winning companies to stock tickers (SEC EDGAR + fuzzy matching + Finnhub)
+- Generates simple directional trading signals (buy/hold/neutral) based on award-to-market-cap ratio and contract pipeline momentum
+- Sends email alerts via SNS when watchlist companies or filter criteria match new awards
+- Dashboard for browsing awards, managing watchlists, and configuring alert filters
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| Hosting | AWS S3 + CloudFront (static export) |
+| Auth | Amazon Cognito (Google + Apple sign-in) |
+| API | API Gateway + Lambda |
+| Database | DynamoDB (5 tables, pay-per-request) |
+| Notifications | SNS email alerts |
+| Scheduling | EventBridge (daily polling) |
+| Infrastructure | AWS CDK (TypeScript) |
+| CI/CD | GitHub Actions via [cicd-toolkit](https://github.com/KotaHusky/cicd-toolkit) |
+| Container | Docker (GHCR) |
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   ├── components/             # React components
+│   ├── lib/
+│   │   ├── clients/
+│   │   │   ├── finnhub/        # Finnhub stock API client
+│   │   │   └── usaspending/    # USAspending.gov API client
+│   │   └── services/
+│   │       ├── signal-engine/  # Trading signal generator
+│   │       └── ticker-mapping/ # Company name -> stock ticker resolver
+│   └── types/                  # Shared TypeScript types
+├── infra/                      # AWS CDK infrastructure
+│   ├── bin/                    # CDK app entry point
+│   └── lib/                    # Stack definitions
+│       ├── network-stack.ts    # S3 + CloudFront
+│       ├── auth-stack.ts       # Cognito
+│       ├── data-stack.ts       # DynamoDB tables
+│       ├── api-stack.ts        # API Gateway + Lambda
+│       ├── notification-stack.ts # SNS
+│       └── scheduler-stack.ts  # EventBridge
+└── .github/workflows/          # CI/CD pipelines
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 24 (see `.nvmrc`)
+- AWS account with CDK bootstrapped
+- Finnhub API key ([free tier](https://finnhub.io))
+
+### Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build    # Static export to out/
+npm run lint     # ESLint
+npm run test     # Vitest (54 tests)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Infrastructure
 
-## Learn More
+```bash
+cd infra
+npm install
+npx cdk synth    # Synthesize CloudFormation templates
+npx cdk deploy   # Deploy all stacks
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Docker
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker compose up app      # Production build on port 3000
+docker compose up dev      # Dev server with hot reload
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data Sources
 
-## Deploy on Vercel
+| Source | Auth | Data Lag | Usage |
+|--------|------|----------|-------|
+| [USAspending.gov API](https://api.usaspending.gov) | None | 1-3 days | Contract awards, recipient/parent company data |
+| [SEC EDGAR](https://www.sec.gov/files/company_tickers.json) | None | Static | Company name to ticker mapping |
+| [Finnhub](https://finnhub.io) | API key (free) | Real-time | Stock quotes, symbol lookup, company profiles |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Trading Signal
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The signal engine generates a simple directional indicator based on:
+
+1. **Award-to-Market-Cap Ratio** -- >5% strong, 1-5% moderate, <1% neutral
+2. **Pipeline Momentum** -- trending award count over 30/60/90 days
+
+> **Disclaimer:** This is an informational tool only and does not constitute financial advice. Past contract awards do not guarantee future stock performance.
