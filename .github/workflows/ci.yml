@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  commitlint:
+    uses: KotaHusky/cicd-toolkit/.github/workflows/commitlint.yml@main
+    with:
+      node-version: '24'
+
+  build-verify:
+    uses: KotaHusky/cicd-toolkit/.github/workflows/build-verify.yml@main
+    with:
+      node-version: '24'
+
+  docker-ghcr:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-verify
+    uses: KotaHusky/cicd-toolkit/.github/workflows/docker-ghcr.yml@main
+    permissions:
+      contents: read
+      packages: write

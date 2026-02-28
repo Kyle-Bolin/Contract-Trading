@@ -1,0 +1,32 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/contract-trading.ts",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "**/*.d.ts",
+      "**/*.js",
+      "tsconfig.json",
+      "package*.json",
+      "node_modules",
+      "test"
+    ]
+  },
+  "context": {
+    "environments": {
+      "dev": {
+        "account": "123456789012",
+        "region": "us-east-1",
+        "domainName": "",
+        "stageName": "dev"
+      },
+      "prod": {
+        "account": "123456789012",
+        "region": "us-east-1",
+        "domainName": "",
+        "stageName": "prod"
+      }
+    }
+  }
+}

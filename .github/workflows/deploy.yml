@@ -1,0 +1,27 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      packages: write
+
+  deploy:
+    needs: ci
+    uses: KotaHusky/cicd-toolkit/.github/workflows/cdk-deploy.yml@main
+    with:
+      working-directory: infra
+    secrets:
+      role-arn: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+    permissions:
+      id-token: write
+      contents: read
