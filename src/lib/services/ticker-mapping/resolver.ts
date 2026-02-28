@@ -66,14 +66,14 @@ export async function resolveTicker(companyName: string): Promise<TickerResult> 
 /** Attempt Finnhub symbol search. Returns null if client is unavailable or no match found. */
 async function finnhubSearch(companyName: string): Promise<TickerResult | null> {
   try {
-    // Try to dynamically import the Finnhub client if available
-    const { searchSymbols } = await import('@/lib/clients/finnhub');
-    const results = await searchSymbols(companyName);
-    if (results && results.length > 0) {
-      const top = results[0];
+    const { FinnhubClient } = await import('@/lib/clients/finnhub');
+    const client = new FinnhubClient(process.env.FINNHUB_API_KEY ?? '');
+    const response = await client.symbolLookup(companyName);
+    if (response && response.result && response.result.length > 0) {
+      const top = response.result[0];
       return {
         ticker: top.symbol,
-        exchange: top.exchange ?? null,
+        exchange: null,
         confidence: 0.8,
         source: 'finnhub',
         isPubliclyTraded: true,
